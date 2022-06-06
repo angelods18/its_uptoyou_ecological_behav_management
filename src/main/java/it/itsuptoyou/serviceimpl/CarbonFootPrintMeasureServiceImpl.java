@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import it.itsuptoyou.collections.CarbonFootPrintMeasurement;
+import it.itsuptoyou.collections.DTO.AverageValue;
 import it.itsuptoyou.collections.DTO.CarbonFootPrintDTO;
 import it.itsuptoyou.exceptions.PreconditionFailedException;
 import it.itsuptoyou.repositories.CarbonFootprintRepository;
@@ -70,8 +71,13 @@ public class CarbonFootPrintMeasureServiceImpl implements CarbonFootPrintMeasure
 		}
 		
 		userMeasurement.setComplete(carbonFootPrintsUtils.isLastMeasurementComplete(requestDTO));
+		if(userMeasurement.isComplete()) {
+			// solo se le misure sono complete ricalcolo la media
+			List<AverageValue> newAverages = carbonFootPrintsUtils.computeTheAverages(userMeasurement);
+			userMeasurement.setMeasurementAverages(newAverages);
+		}
 		
-		
+		userMeasurement= carbonFootprintRepository.save(userMeasurement);
 		
 		return userMeasurement;
 	}
