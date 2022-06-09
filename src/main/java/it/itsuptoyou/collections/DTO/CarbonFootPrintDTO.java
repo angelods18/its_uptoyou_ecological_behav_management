@@ -58,4 +58,16 @@ public class CarbonFootPrintDTO {
 		}
 		return group;
 	}
+	
+	public CarbonFootPrintDTO() {
+		// TODO Auto-generated constructor stub
+	}
+	
+	public CarbonFootPrintDTO(Boolean initialize) {
+		if(initialize) {
+			this.alimentation=new HashMap<>();
+			this.house=new HashMap<>();
+			this.transport=new HashMap<>();
+		}
+	}
 }

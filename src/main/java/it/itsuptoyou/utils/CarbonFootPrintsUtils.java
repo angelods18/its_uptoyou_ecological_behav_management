@@ -1,17 +1,27 @@
 package it.itsuptoyou.utils;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.stereotype.Component;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import it.itsuptoyou.collections.CarbonFootPrintMeasurement;
 import it.itsuptoyou.collections.DTO.AverageValue;
 import it.itsuptoyou.collections.DTO.CarbonFootPrintDTO;
+import lombok.Data;
 import lombok.extern.log4j.Log4j2;
 
 @Log4j2
-public abstract class CarbonFootPrintsUtils {
+@Component
+public class CarbonFootPrintsUtils {
 
 	public static final int ALIMENTATION_FIELD = 10;
 	public static final int HOUSE_FIELD = 3;
@@ -21,6 +31,10 @@ public abstract class CarbonFootPrintsUtils {
 	public static final String TRANSPORT = "transport";
 	public static final String HOUSE = "house";
 	public static final String ALIMENTATION = "alimentation";
+	
+	public static final String COEFFICIENT_FILE = "carbonfootprint.json";
+	
+	private static MeasureCoefficient measureCoefficient;
 	
 	@SuppressWarnings("unused")
 	public List<AverageValue> computeTheAverages(CarbonFootPrintMeasurement request) {
@@ -71,5 +85,56 @@ public abstract class CarbonFootPrintsUtils {
 		sum=sum+averages.stream().filter(a -> a.getName().equals(HOUSE)).findFirst().get().getValue();
 		sum=sum+averages.stream().filter(a -> a.getName().equals(TRANSPORT)).findFirst().get().getValue();
 		return sum;
+	}
+	
+	public CarbonFootPrintDTO computeCarbonFootPrintFromAnswers(CarbonFootPrintDTO request) {
+		CarbonFootPrintDTO cfpDTO = new CarbonFootPrintDTO(true);
+		request.getAlimentation().keySet().stream().forEach(p ->{
+			cfpDTO.getAlimentation().put(p, request.getAlimentation().get(p) * getCoefficientByGroupAndPosition(ALIMENTATION, p.toString()));
+		});
+		request.getHouse().keySet().stream().forEach(p ->{
+			cfpDTO.getHouse().put(p, request.getHouse().get(p) * getCoefficientByGroupAndPosition(HOUSE, p.toString()));
+		});
+		request.getTransport().keySet().stream().forEach(p ->{
+			cfpDTO.getTransport().put(p, request.getTransport().get(p) * getCoefficientByGroupAndPosition(TRANSPORT, p.toString()));
+		});
+		return cfpDTO;
+	}
+	
+	public Double getCoefficientByGroupAndPosition(String group, String position)  {
+		if(measureCoefficient==null) {
+			File cfpJson;
+			try {
+				cfpJson = new ClassPathResource(COEFFICIENT_FILE).getFile();
+				ObjectMapper mapper = new ObjectMapper();
+				measureCoefficient = mapper.readValue(cfpJson, MeasureCoefficient.class);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				log.error("Errore in lettura file carbonfootprint.json " + e);
+			} 
+		}
+		
+		Map<String,Double> coefficientGroup=new HashMap<>();
+		switch (group) {
+		case ALIMENTATION:
+			coefficientGroup=measureCoefficient.getAlimentation();
+			break;
+		case HOUSE:
+			coefficientGroup=measureCoefficient.getHouse();
+			break;
+		case TRANSPORT:
+			coefficientGroup=measureCoefficient.getTransport();
+		default:
+			break;
+		}
+		double coefficient = coefficientGroup.get( String.valueOf(Integer.valueOf(position)+1));
+		return coefficient;
+	}
+	
+	@Data
+	public static class MeasureCoefficient {
+		private Map<String,Double> alimentation;
+		private Map<String,Double> house;
+		private Map<String,Double> transport;
 	}
 }

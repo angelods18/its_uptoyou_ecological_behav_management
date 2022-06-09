@@ -38,7 +38,7 @@ public class CarbonFootPrintController {
 	 * @return
 	 * @throws PreconditionFailedException 
 	 */
-	@PostMapping("save-carbon-footprint")
+	@PostMapping("protected/save-carbon-footprint")
 	public CarbonFootPrintMeasurement registerCarbonFootPrint(HttpServletRequest request, @RequestBody CarbonFootPrintDTO requestBody) throws PreconditionFailedException{
 		String username = request.getHeader(USERNAME);
 		

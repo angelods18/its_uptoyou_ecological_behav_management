@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalAmount;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,22 +27,24 @@ public class CarbonFootPrintMeasureServiceImpl implements CarbonFootPrintMeasure
 	@Autowired
 	private CarbonFootprintRepository carbonFootprintRepository;
 	
+	@Autowired
 	private CarbonFootPrintsUtils carbonFootPrintsUtils;
 	
 	@Override
 	public CarbonFootPrintMeasurement registerMeasurement(String username, CarbonFootPrintDTO requestDTO) throws PreconditionFailedException {
-		// TODO Auto-generated method stub
-		
+		//check if all the group are empty
 		if(requestDTO.getAlimentation().isEmpty() && 
 				requestDTO.getHouse().isEmpty() && 
 				requestDTO.getTransport().isEmpty()) {
 			throw new PreconditionFailedException("carbonFootPrint","emptyValue");
 		}
-		
+		//find meas for user
 		Optional<CarbonFootPrintMeasurement> userMeasurementsOpt = carbonFootprintRepository.findByUsername(username);
 		CarbonFootPrintMeasurement userMeasurement;
 		if(userMeasurementsOpt.isEmpty()) {
+			//first object, field initialization
 			userMeasurement = new CarbonFootPrintMeasurement();
+			userMeasurement.setMeasurements(new HashMap<>());
 			userMeasurement.setCreatedDate(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
 			userMeasurement.setLastModifiedDate(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
 			userMeasurement.setUsername(username);
@@ -49,34 +52,45 @@ public class CarbonFootPrintMeasureServiceImpl implements CarbonFootPrintMeasure
 			userMeasurement = userMeasurementsOpt.get();
 		}
 		LocalDateTime now = LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC);
-		// controllo sulla settimana
-		if( !(userMeasurement.getLastMeasurement()!=null && 
+		// weekly check
+		if( userMeasurement.getLastMeasurement()!= null &&
+				!(userMeasurement.getLastMeasurement()!=null && 
 				now.minus(Duration.ofDays(7)).isAfter(userMeasurement.getLastMeasurement()) &&
 				userMeasurement.isComplete())) 
 		{
-			//controllo temporale fallito
+			//failed weekly check
 			throw new PreconditionFailedException("carbonFootPrint","maxOnceAWeek");
 		}
-		//Logica di inserimento misure e controllo che ci siano tutte 
-		//check su isComplete
+		// Insert measurement
+		// Compute real values multiplying with coefficient
+		requestDTO = carbonFootPrintsUtils.computeCarbonFootPrintFromAnswers(requestDTO);
+		//check isComplete
 		if(userMeasurement.isComplete()) {
-			//deve essere creata una nuova misura da zero
+			//create a new measure
 			userMeasurement.getMeasurements().put(userMeasurement.getNumberOfSamples(), requestDTO);
 			userMeasurement.setNumberOfSamples(userMeasurement.getNumberOfSamples()+1);
 		}else {
-			//bisogna sovrascrivere l'ultima misura
-			userMeasurement.getMeasurements().put(
-					userMeasurement.getNumberOfSamples()-1,
-					requestDTO);
+			//measurement overwrite
+			if(userMeasurement.getNumberOfSamples()==0) {
+				userMeasurement.getMeasurements().put(
+						userMeasurement.getNumberOfSamples(),
+						requestDTO);
+			}else {
+				userMeasurement.getMeasurements().put(
+						userMeasurement.getNumberOfSamples()-1,
+						requestDTO);
+			}
+			
 		}
 		
 		userMeasurement.setComplete(carbonFootPrintsUtils.isLastMeasurementComplete(requestDTO));
 		if(userMeasurement.isComplete()) {
-			// solo se le misure sono complete ricalcolo la media
+			// if complete compute new averages
 			List<AverageValue> newAverages = carbonFootPrintsUtils.computeTheAverages(userMeasurement);
 			userMeasurement.setMeasurementAverages(newAverages);
+			userMeasurement.setLastMeasurement(now);
 		}
-		
+		userMeasurement.setLastModifiedDate(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
 		userMeasurement= carbonFootprintRepository.save(userMeasurement);
 		
 		return userMeasurement;
