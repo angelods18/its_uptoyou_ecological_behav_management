@@ -20,6 +20,7 @@ public class CarbonFootPrintMeasurement extends EntityAbstract{
 	private int numberOfSamples = 0;
 	// keep track of average of each subset
 	private List<AverageValue> measurementAverages;
+	private List<Double> totalAverageValues;
 	private LocalDateTime lastMeasurement;
 	// true only if each measurement is complete
 	private boolean isComplete = false;

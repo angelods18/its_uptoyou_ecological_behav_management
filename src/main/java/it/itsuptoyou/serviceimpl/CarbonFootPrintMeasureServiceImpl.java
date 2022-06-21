@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalAmount;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
@@ -68,25 +69,22 @@ public class CarbonFootPrintMeasureServiceImpl implements CarbonFootPrintMeasure
 		if(userMeasurement.isComplete()) {
 			//create a new measure
 			userMeasurement.getMeasurements().put(userMeasurement.getNumberOfSamples(), requestDTO);
-			userMeasurement.setNumberOfSamples(userMeasurement.getNumberOfSamples()+1);
 		}else {
 			//measurement overwrite
-			if(userMeasurement.getNumberOfSamples()==0) {
-				userMeasurement.getMeasurements().put(
-						userMeasurement.getNumberOfSamples(),
-						requestDTO);
-			}else {
-				userMeasurement.getMeasurements().put(
-						userMeasurement.getNumberOfSamples()-1,
-						requestDTO);
-			}
-			
+			userMeasurement.getMeasurements().put(
+					userMeasurement.getNumberOfSamples(),
+					requestDTO);			
 		}
 		
 		userMeasurement.setComplete(carbonFootPrintsUtils.isLastMeasurementComplete(requestDTO));
 		if(userMeasurement.isComplete()) {
 			// if complete compute new averages
+			userMeasurement.setNumberOfSamples(userMeasurement.getNumberOfSamples()+1);
 			List<AverageValue> newAverages = carbonFootPrintsUtils.computeTheAverages(userMeasurement);
+			List<Double> totalAverages = (userMeasurement.getTotalAverageValues()!=null) ?
+					userMeasurement.getTotalAverageValues() : new ArrayList<>();
+			totalAverages.add(newAverages.stream().filter(av -> av.getName().equals("total")).findFirst().get().getValue());
+			userMeasurement.setTotalAverageValues(totalAverages);
 			userMeasurement.setMeasurementAverages(newAverages);
 			userMeasurement.setLastMeasurement(now);
 		}

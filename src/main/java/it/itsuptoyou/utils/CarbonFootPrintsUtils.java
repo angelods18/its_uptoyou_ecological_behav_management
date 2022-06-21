@@ -3,6 +3,7 @@ package it.itsuptoyou.utils;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,24 +43,42 @@ public class CarbonFootPrintsUtils {
 		log.info("calculate the sum");
 		List<AverageValue> response = new ArrayList<>();
 		List<AverageValue> averages= request.getMeasurementAverages();
-		CarbonFootPrintDTO lastMeasurement = request.getMeasurements().get(request.getNumberOfSamples()-1);
-		int oldSamples = request.getNumberOfSamples()-1;
-		for (AverageValue averageValue : averages) {
-			String measType = averageValue.getName();
-			if(!measType.equals(TOTAL)) {
-				Map<Integer,Double> meas = lastMeasurement.getGroupByName(measType);
-				double oldAverage = averageValue.getValue()*oldSamples;
-				//TODO average computing criteria: per field or per group?
-				// first: per group --> sum of all fields
-				averageValue.setValue((oldAverage+getSumPerGroup(meas))/request.getNumberOfSamples());
-				response.add(averageValue);
+		if(averages==null) {
+			// this is the first time a compute the average
+			CarbonFootPrintDTO meas = request.getMeasurements().get(0);
+			Map<Integer,Double> alimentationMeas = meas.getAlimentation();
+			Map<Integer,Double> houseMeas = meas.getHouse();
+			Map<Integer,Double> transportMeas = meas.getTransport();
+			AverageValue alimentationAverage = new AverageValue(); alimentationAverage.setName(ALIMENTATION);
+			AverageValue houseAverage = new AverageValue(); houseAverage.setName(HOUSE);
+			AverageValue transportAverage = new AverageValue(); transportAverage.setName(TRANSPORT);
+			AverageValue totalAverage = new AverageValue(); totalAverage.setName(TOTAL);
+			alimentationAverage.setValue(getSumPerGroup(alimentationMeas));
+			houseAverage.setValue(getSumPerGroup(houseMeas));
+			transportAverage.setValue(getSumPerGroup(transportMeas));
+			totalAverage.setValue(alimentationAverage.getValue()+houseAverage.getValue()+transportAverage.getValue());
+			response = Arrays.asList(totalAverage, alimentationAverage, houseAverage, transportAverage);
+		}else {
+			CarbonFootPrintDTO lastMeasurement = request.getMeasurements().get(request.getNumberOfSamples()-1);
+			int oldSamplesIndex = request.getNumberOfSamples()-1;
+			for (AverageValue averageValue : averages) {
+				String measType = averageValue.getName();
+				if(!measType.equals(TOTAL)) {
+					Map<Integer,Double> meas = lastMeasurement.getGroupByName(measType);
+					double oldAverage = averageValue.getValue()*oldSamplesIndex;
+					//TODO average computing criteria: per field or per group?
+					// first: per group --> sum of all fields
+					averageValue.setValue((oldAverage+getSumPerGroup(meas))/request.getNumberOfSamples());
+					response.add(averageValue);
+				}
 			}
+			//update total average
+			AverageValue totalAverage = averages.stream().filter(a -> a.getName().equals(TOTAL)).findAny().get();
+			totalAverage.setValue(
+					(totalAverage.getValue()*oldSamplesIndex + getSumOfAllGroup(averages))/request.getNumberOfSamples());
+			response.add(totalAverage);
 		}
-		//update total average
-		AverageValue totalAverage = averages.stream().filter(a -> a.getName().equals(TOTAL)).findAny().get();
-		totalAverage.setValue(
-				(totalAverage.getValue()*oldSamples + getSumOfAllGroup(averages))/request.getNumberOfSamples());
-		response.add(totalAverage);
+		
 		
 		return response;
 	}
@@ -127,7 +146,8 @@ public class CarbonFootPrintsUtils {
 		default:
 			break;
 		}
-		double coefficient = coefficientGroup.get( String.valueOf(Integer.valueOf(position)+1));
+		double	coefficient = coefficientGroup.get( String.valueOf(Integer.valueOf(position)+1));
+		
 		return coefficient;
 	}
 	
