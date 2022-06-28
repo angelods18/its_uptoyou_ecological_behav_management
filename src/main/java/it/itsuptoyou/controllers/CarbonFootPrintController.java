@@ -5,7 +5,9 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -39,9 +41,21 @@ public class CarbonFootPrintController {
 	 * @throws PreconditionFailedException 
 	 */
 	@PostMapping("protected/save-carbon-footprint")
-	public CarbonFootPrintMeasurement registerCarbonFootPrint(HttpServletRequest request, @RequestBody CarbonFootPrintDTO requestBody) throws PreconditionFailedException{
+	public ResponseEntity<CarbonFootPrintMeasurement> registerCarbonFootPrint(HttpServletRequest request, @RequestBody CarbonFootPrintDTO requestBody) throws PreconditionFailedException{
 		String username = request.getHeader(USERNAME);
 		
-		return carbonFootPrintService.registerMeasurement(username, requestBody);
+		return ResponseEntity.ok(carbonFootPrintService.registerMeasurement(username, requestBody));
+	}
+	
+	@GetMapping("protected/get-carbon-footprint")
+	public ResponseEntity<CarbonFootPrintMeasurement> getCarbonFootPrint(HttpServletRequest request) {
+		String username = request.getHeader("username");
+		return ResponseEntity.ok(carbonFootPrintService.getUserMeasurement(username));
+	}
+	
+	@GetMapping("protected/get-carbon-footprint/{username}")
+	public ResponseEntity<CarbonFootPrintMeasurement> getUserCarbonFootPrint(HttpServletRequest request, @PathVariable("username") String username){
+		
+		return ResponseEntity.ok(carbonFootPrintService.getUserMeasurement(username));
 	}
 }

@@ -25,4 +25,6 @@ public class CarbonFootPrintMeasurement extends EntityAbstract{
 	// true only if each measurement is complete
 	private boolean isComplete = false;
 	private Map<Integer,CarbonFootPrintDTO> measurements;
+	
+	
 }

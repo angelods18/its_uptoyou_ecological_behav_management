@@ -120,6 +120,20 @@ public class CarbonFootPrintsUtils {
 		return cfpDTO;
 	}
 	
+	public CarbonFootPrintDTO computeAnswersFromCarbonFootPrint(CarbonFootPrintDTO request) {
+		CarbonFootPrintDTO cfpDTO = new CarbonFootPrintDTO(true);
+		request.getAlimentation().keySet().stream().forEach(p ->{
+			cfpDTO.getAlimentation().put(p, request.getAlimentation().get(p) / getCoefficientByGroupAndPosition(ALIMENTATION, p.toString()));
+		});
+		request.getHouse().keySet().stream().forEach(p ->{
+			cfpDTO.getHouse().put(p, request.getHouse().get(p) / getCoefficientByGroupAndPosition(HOUSE, p.toString()));
+		});
+		request.getTransport().keySet().stream().forEach(p ->{
+			cfpDTO.getTransport().put(p, request.getTransport().get(p) / getCoefficientByGroupAndPosition(TRANSPORT, p.toString()));
+		});
+		return cfpDTO;
+	}
+	
 	public Double getCoefficientByGroupAndPosition(String group, String position)  {
 		if(measureCoefficient==null) {
 			File cfpJson;

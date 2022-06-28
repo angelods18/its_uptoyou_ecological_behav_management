@@ -1,5 +1,6 @@
 package it.itsuptoyou.serviceimpl;
 
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -9,10 +10,16 @@ import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import it.itsuptoyou.collections.CarbonFootPrintMeasurement;
 import it.itsuptoyou.collections.DTO.AverageValue;
@@ -21,8 +28,10 @@ import it.itsuptoyou.exceptions.PreconditionFailedException;
 import it.itsuptoyou.repositories.CarbonFootprintRepository;
 import it.itsuptoyou.service.CarbonFootPrintMeasureService;
 import it.itsuptoyou.utils.CarbonFootPrintsUtils;
+import lombok.extern.log4j.Log4j2;
 
 @Service
+@Log4j2
 public class CarbonFootPrintMeasureServiceImpl implements CarbonFootPrintMeasureService{
 
 	@Autowired
@@ -55,7 +64,7 @@ public class CarbonFootPrintMeasureServiceImpl implements CarbonFootPrintMeasure
 		LocalDateTime now = LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC);
 		// weekly check
 		if( userMeasurement.getLastMeasurement()!= null &&
-				!(userMeasurement.getLastMeasurement()!=null && 
+				!(//userMeasurement.getLastMeasurement()!=null && 
 				now.minus(Duration.ofDays(7)).isAfter(userMeasurement.getLastMeasurement()) &&
 				userMeasurement.isComplete())) 
 		{
@@ -92,6 +101,33 @@ public class CarbonFootPrintMeasureServiceImpl implements CarbonFootPrintMeasure
 		userMeasurement= carbonFootprintRepository.save(userMeasurement);
 		
 		return userMeasurement;
+	}
+	
+	@Override
+	public CarbonFootPrintMeasurement getUserMeasurement(String username) {
+		// TODO Auto-generated method stub
+		Optional<CarbonFootPrintMeasurement> userMeasurement = carbonFootprintRepository.findByUsername(username);
+		
+		if(userMeasurement.isEmpty()) {
+			log.debug("no past measurements");
+			CarbonFootPrintMeasurement emptyMeas = new CarbonFootPrintMeasurement();
+			return emptyMeas;
+		}else {
+			// trasnform every measurement back to user answers
+			CarbonFootPrintMeasurement measure = userMeasurement.get();
+			Set<Integer> numberOfMeasure = measure.getMeasurements().keySet();
+			for (Integer integer : numberOfMeasure) {
+				measure.getMeasurements().put(integer, carbonFootPrintsUtils.computeAnswersFromCarbonFootPrint(measure.getMeasurements().get(integer)));
+			}
+			return measure;
+		}
+	}
+	
+	@Override
+	public Map<String, Object> saveCommentToMeasurement(String username, Map<String, Object> requestBody) {
+		// TODO Auto-generated method stub
+		
+		return null;
 	}
 	
 	
