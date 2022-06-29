@@ -1,5 +1,6 @@
 package it.itsuptoyou.controllers;
 
+import java.util.Enumeration;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
@@ -47,15 +48,37 @@ public class CarbonFootPrintController {
 		return ResponseEntity.ok(carbonFootPrintService.registerMeasurement(username, requestBody));
 	}
 	
+	/**
+	 * Get measurment of the user that does the request
+	 * @param request
+	 * @return
+	 */
 	@GetMapping("protected/get-carbon-footprint")
 	public ResponseEntity<CarbonFootPrintMeasurement> getCarbonFootPrint(HttpServletRequest request) {
 		String username = request.getHeader("username");
 		return ResponseEntity.ok(carbonFootPrintService.getUserMeasurement(username));
 	}
 	
+	/**
+	 * Get measurement of the user with {username}
+	 * @param request
+	 * @param username
+	 * @return
+	 */
 	@GetMapping("protected/get-carbon-footprint/{username}")
 	public ResponseEntity<CarbonFootPrintMeasurement> getUserCarbonFootPrint(HttpServletRequest request, @PathVariable("username") String username){
 		
 		return ResponseEntity.ok(carbonFootPrintService.getUserMeasurement(username));
 	}
+	
+	@PostMapping("protected/carbon-footprint/comment")
+	public ResponseEntity<?> addCommentToMeasurement(HttpServletRequest request, @RequestBody Map<String,Object> requestBody){
+
+		String token = request.getHeader("token");
+		String username = request.getHeader("username");
+		requestBody.put("token", token);
+		carbonFootPrintService.saveCommentToMeasurement(username, requestBody);
+		return ResponseEntity.ok(null);
+	}
+	
 }

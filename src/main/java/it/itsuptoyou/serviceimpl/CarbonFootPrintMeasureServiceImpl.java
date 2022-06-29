@@ -28,17 +28,24 @@ import it.itsuptoyou.exceptions.PreconditionFailedException;
 import it.itsuptoyou.repositories.CarbonFootprintRepository;
 import it.itsuptoyou.service.CarbonFootPrintMeasureService;
 import it.itsuptoyou.utils.CarbonFootPrintsUtils;
+import it.itsuptoyou.utils.RestTemplateUtils;
 import lombok.extern.log4j.Log4j2;
 
 @Service
 @Log4j2
 public class CarbonFootPrintMeasureServiceImpl implements CarbonFootPrintMeasureService{
 
+	private static final String GATEWAY_URL = "http://localhost:8022/";
+	private static final String MANAGEMENT_SERVICE_URL = "management-service/";
+	
 	@Autowired
 	private CarbonFootprintRepository carbonFootprintRepository;
 	
 	@Autowired
 	private CarbonFootPrintsUtils carbonFootPrintsUtils;
+	
+	@Autowired
+	private RestTemplateUtils restTemplateUtils;
 	
 	@Override
 	public CarbonFootPrintMeasurement registerMeasurement(String username, CarbonFootPrintDTO requestDTO) throws PreconditionFailedException {
@@ -126,6 +133,9 @@ public class CarbonFootPrintMeasureServiceImpl implements CarbonFootPrintMeasure
 	@Override
 	public Map<String, Object> saveCommentToMeasurement(String username, Map<String, Object> requestBody) {
 		// TODO Auto-generated method stub
+		String token = requestBody.get("token").toString();
+		restTemplateUtils.getRequest(GATEWAY_URL+MANAGEMENT_SERVICE_URL+"protected/profile", token, requestBody);
+		
 		
 		return null;
 	}
